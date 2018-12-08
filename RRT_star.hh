@@ -35,5 +35,7 @@ private:
 	void optimalPathPlot(VectorOf2d & path);
 	double searchRadius(int step, int N_steps);
 	double generateState(double min, double max);
+	template<class T>
+	void printVec(std::vector<T> vec);
 };
 #endif

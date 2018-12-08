@@ -10,7 +10,7 @@
   public:
 	  BoxExpanded(std::string _name, ignition::math::Vector3d _min, ignition::math::Vector3d _max):ignition::math::Box(_min, _max)
 	  {
-	  		name=_name;
+	  		name=_name;	  		
 	  		lines.push_back(ignition::math::Line2<double>(Min().X(),Min().Y(), Max().X(),Min().Y()));
 	  		lines.push_back(ignition::math::Line2<double>(Max().X(),Min().Y(), Max().X(),Max().Y()));
 	  		lines.push_back(ignition::math::Line2<double>(Max().X(),Max().Y(), Min().X(),Max().Y()));
