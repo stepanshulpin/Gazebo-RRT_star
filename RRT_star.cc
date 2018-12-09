@@ -3,20 +3,19 @@
 
 RRT_star::RRT_star(ignition::math::Vector2d _minPlace, ignition::math::Vector2d _maxPlace, 
 		ignition::math::Vector2d _init, ignition::math::Vector2d _goal, int _N_steps, 
-		double _accuracy, std::vector<BoxExpanded> _obstacles)
+		double _p, double _accuracy, std::vector<BoxExpanded> _obstacles)
 {
 	minPlace=_minPlace;
 	maxPlace=_maxPlace;
 	init=_init;
 	goal=_goal;
 	N_steps=_N_steps;
+	p=_p;
 	accuracy=_accuracy;
 	for_each(_obstacles.begin(), _obstacles.end(), [&](BoxExpanded i){	
 		std::vector<ignition::math::Line2<double>> linesFromBox(i.getLines());
 		lines.insert(lines.end(),linesFromBox.begin(),linesFromBox.end());
 	});	
-	for(auto &line:lines) std::cout<<line<<"   ";
-	std::cout<<std::endl;
 }
 
 void RRT_star::getPath(VectorOf2d & path)
@@ -31,48 +30,34 @@ void RRT_star::getPath(VectorOf2d & path)
 		std::cout<<"Step--->"<<step<<std::endl;
 		ignition::math::Vector2d rand(generateState(minPlace.X(),maxPlace.X()),
 				generateState(minPlace.Y(),maxPlace.Y()));
-		std::cout<<"generateState rand="<<rand<<std::endl;
 		ignition::math::Vector2d near;
 		nearestNeighbour(near,rand);
-		std::cout<<"nearestNeighbour near="<<near<<std::endl;
 		ignition::math::Vector2d nev;//new vertex
 		findStoppingState(nev,near,rand);
-		std::cout<<"findStoppingState nev="<<nev<<std::endl;
 		if(nev!=near)
 		{
 			tree_size++;
 			double r=searchRadius(step,N_steps);
-			std::cout<<"searchRadius r="<<r<<std::endl;
 			std::vector<int> nearestInd;
 			std::vector<double> distanceToNew;
 			nearestNeighbours(nearestInd, distanceToNew,nev,r);
-			std::cout<<"nearestNeighbours"<<std::endl;	
-			printVec(nearestInd);
-			std::cout<<"distanceToNew"<<std::endl;
-			printVec(distanceToNew);
 			if(!nearestInd.empty())
 			{
 				std::vector<double> sortedCosts;
 				std::vector<int> prevSortInd;
 				sortNearestNeighbours(sortedCosts,prevSortInd,nearestInd,distanceToNew);
-				std::cout<<"sortNearestNeighbours"<<std::endl;
-				printVec(sortedCosts);
-				std::cout<<"prevSortInd"<<std::endl;
-				printVec(prevSortInd);
 				double newCost;
 				int iParent;
 				minCostParent(newCost,iParent,nev,nearestInd,sortedCosts,prevSortInd);
-				std::cout<<"minCostParent newCost="<<newCost<<std::endl;
-				std::cout<<"minCostParent iParent="<<iParent<<std::endl;
 				vertexes.push_back(nev);
 				parents.push_back(nearestInd[iParent]);
 				costs.push_back(newCost);
 				rewire(tree_size,newCost,distanceToNew,nearestInd,nev);
-				std::cout<<"rewire"<<std::endl;
 			}
 			if(nev.Distance(goal)<accuracy)
 			{
 				optimalPathPlot(path);
+				break;
 			}
 		}
 		step++;
@@ -81,7 +66,7 @@ void RRT_star::getPath(VectorOf2d & path)
 
 void RRT_star::optimalPathPlot(VectorOf2d & path)
 {
-	int ix=vertexes.size();
+	int ix=vertexes.size()-1;
 	path.push_back(vertexes[ix]);
 	while(parents[ix]!=-1)
 	{
@@ -104,8 +89,6 @@ void RRT_star::nearestNeighbour(ignition::math::Vector2d & near, ignition::math:
 	for_each(vertexes.begin(), vertexes.end(), [&](ignition::math::Vector2d i){
 		dist.push_back(i.Distance(rand));
 	});
-	std::cout<<"dist"<<std::endl;
-	printVec(dist);
 	near = vertexes.at(std::distance(dist.begin(), std::min_element(dist.begin(), dist.end())));
 }
 
@@ -113,21 +96,26 @@ void RRT_star::findStoppingState(ignition::math::Vector2d & nev, ignition::math:
 {	
 	ignition::math::Line2<double> line(near,rand);
 	VectorOf2d points;
-	int isntCross=0;
-	isntCross=std::all_of(lines.begin(),lines.end(),[&](ignition::math::Line2<double> i){
+	std::vector<double> dist;
+	int isntCross=1;
+	for_each(lines.begin(),lines.end(),[&](ignition::math::Line2<double> i){
 		ignition::math::Vector2d point;
 		int cross = i.Intersect(line,point);
-		if(cross) points.push_back(point);
-		return !cross;
+		if(cross) 
+		{
+			isntCross=0;
+			points.push_back(point);
+			dist.push_back(point.Distance(near));
+		}
 	});
 	if(isntCross) nev=rand;
 	else
 	{
-		std::vector<double> dist(points.size());
-		for_each(points.begin(), points.end(), [&](ignition::math::Vector2d i){
-			dist.push_back(i.Distance(rand));
-		});
-		nev = points.at(std::distance(dist.begin(), std::min_element(dist.begin(), dist.end())));
+		ignition::math::Vector2d crossVec = points.at(std::distance(dist.begin(), std::min_element(dist.begin(), dist.end())));
+		ignition::math::Vector2d dif = near-crossVec;
+		dif.Normalize();
+		dif*=p;		
+		nev=crossVec+dif;		
 	}
 }
 
@@ -158,9 +146,6 @@ void RRT_star::sortNearestNeighbours(std::vector<double> & sortedCosts, std::vec
 		}
 		j++;
 	}
-	std::cout<<"costsPair"<<std::endl;
-	for(auto &i:costsPair) std::cout<<"cost--->"<<i.first<<"num--->"<<i.second<<"  ";
-	std::cout<<std::endl;
 	std::sort(costsPair.begin(),costsPair.end(),
 	          [] (const auto& lhs, const auto& rhs) {
 	    return lhs.first < rhs.first;
@@ -171,7 +156,6 @@ void RRT_star::sortNearestNeighbours(std::vector<double> & sortedCosts, std::vec
 		prevSortInd.push_back(i.second);
 	});
 }
-
 void RRT_star::minCostParent(double & newCost, int & iParent,ignition::math::Vector2d nev, std::vector<int> nearestInd, std::vector<double> sortedCosts, std::vector<int> prevSortInd)
 {
 	int foundColisionFreeParent=0;
@@ -179,7 +163,7 @@ void RRT_star::minCostParent(double & newCost, int & iParent,ignition::math::Vec
 	while(!foundColisionFreeParent)
 	{
 		iParent=prevSortInd[j];
-		ignition::math::Line2<double> line(nev,vertexes[nearestInd[iParent]]);
+		ignition::math::Line2<double> line(nev,vertexes[iParent]);
 		int isntCross=0;
 		isntCross=std::all_of(lines.begin(),lines.end(),[&](ignition::math::Line2<double> i){
 			int cross = i.Intersect(line);
@@ -198,12 +182,12 @@ void RRT_star::minCostParent(double & newCost, int & iParent,ignition::math::Vec
 void RRT_star::rewire(int tree_size,double newCost,std::vector<double> distanceToNew,std::vector<int> nearestInd,ignition::math::Vector2d nev)
 {
 	int j=0;
-	for(const auto &i:costs) 
-	{
-		if(std::any_of(nearestInd.begin(),nearestInd.end(),[&](int k){return k==j;}))
+	for(const auto &i:vertexes) 
+	{		
+		if(std::find(nearestInd.begin(),nearestInd.end(),j)!=nearestInd.end())
 		{
 			if((newCost+distanceToNew[j])<costs[j]){
-				int iNode = nearestInd[j];
+				int iNode = j;
 				ignition::math::Line2<double> line(nev,vertexes[iNode]);
 				int isntCross=0;
 				isntCross=std::all_of(lines.begin(),lines.end(),[&](ignition::math::Line2<double> k){

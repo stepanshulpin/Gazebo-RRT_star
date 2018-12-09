@@ -31,11 +31,12 @@ public:
 		ignition::math::Vector2d init(-9,-9);
 		ignition::math::Vector2d goal(9,9);
 		int N_steps=1000;
-		double p=0.1;
-		double accuracy=0.1;
-		RRT_star alg(minPlace,maxPlace,init,goal,N_steps,accuracy,boxes);
+		double p=0.05;
+		double accuracy=0.3;
+		RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes);
 		VectorOf2d path;
 		alg.getPath(path);
+		std::cout<<"path"<<std::endl;
 		for(auto &i:path)
 		{
 			std::cout<<i<<"   ";
