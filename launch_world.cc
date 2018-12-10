@@ -11,47 +11,90 @@ namespace gazebo
 {
 class LaunchWorld : public WorldPlugin
 {
+private: physics::ModelPtr model;
+
+private: event::ConnectionPtr updateConnection;
+
 public: 
-	void Load(physics::WorldPtr _parent, sdf::ElementPtr /*_sdf*/)
-	{
-		BoxExpanded box1("box_1", ignition::math::Vector3d(1,2,0), 
-				ignition::math::Vector3d(2,4,1)); 
-		BoxExpanded box2("box_2", ignition::math::Vector3d(-3,-4,0), 
-				ignition::math::Vector3d(-2,-2,1)); 
-		BoxExpanded box3("box_3", ignition::math::Vector3d(-3,2,0), 
-				ignition::math::Vector3d(-2,4,1)); 
+void Load(physics::WorldPtr _parent, sdf::ElementPtr /*_sdf*/)
+{	
+	ignition::math::Vector2d minPlace(-10,-10);
+	ignition::math::Vector2d maxPlace(10,10);
+	ignition::math::Vector2d init(-9,-9);
+	ignition::math::Vector2d goal(9,9);
 
-		insertModel(&box1,_parent);
-		insertModel(&box2,_parent);
-		insertModel(&box3,_parent); 	
+	transport::NodePtr node(new transport::Node());
+	node->Init(_parent->Name());
+	transport::PublisherPtr factoryPub =
+			node->Advertise<msgs::Factory>("~/factory");
+	msgs::Factory msg;
 
-		std::vector<BoxExpanded> boxes={box1,box2,box3};
-		ignition::math::Vector2d minPlace(-10,-10);
-		ignition::math::Vector2d maxPlace(10,10);
-		ignition::math::Vector2d init(-9,-9);
-		ignition::math::Vector2d goal(9,9);
-		int N_steps=1000;
-		double p=0.05;
-		double accuracy=0.3;
-		RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes);
-		VectorOf2d path;
-		alg.getPath(path);
-		std::cout<<"path"<<std::endl;
-		for(auto &i:path)
-		{
-			std::cout<<i<<"   ";
-		}
-		std::cout<<std::endl;
-		
-	}
-	void insertModel(BoxExpanded* box, physics::WorldPtr _parent)
+	ignition::math::Vector2d zeroAngle(1,0);
+	ignition::math::Vector2d angleVec = goal-init;
+
+	double angle = getAngle(zeroAngle,angleVec);
+
+	msg.set_sdf_filename("model://robot");
+	msgs::Set(msg.mutable_pose(),
+			ignition::math::Pose3d(
+					ignition::math::Vector3d(init.X(), init.Y(), 0),
+					ignition::math::Quaterniond(0, 0, angle)));
+
+	factoryPub->Publish(msg);
+
+	BoxExpanded box1("box_1", ignition::math::Vector3d(1,2,0), 
+			ignition::math::Vector3d(6,2.5,1)); 
+	BoxExpanded box2("box_2", ignition::math::Vector3d(-3,-9,0), 
+			ignition::math::Vector3d(-2.5,-2,1)); 
+	BoxExpanded box3("box_3", ignition::math::Vector3d(-2.5,2,0), 
+			ignition::math::Vector3d(-2,4,1)); 
+	BoxExpanded box4("box_4", ignition::math::Vector3d(-7,-2,0), 
+			ignition::math::Vector3d(-2.5,-1.5,1)); 
+
+	insertModel(&box1,_parent);
+	insertModel(&box2,_parent);
+	insertModel(&box3,_parent);
+	insertModel(&box4,_parent);
+
+	std::vector<BoxExpanded> boxes={box1,box2,box3,box4};
+	int N_steps=10000;
+	double p=0.1;
+	double accuracy=0.3;
+	RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes);
+	VectorOf2d path;
+	alg.getPath(path);
+	std::cout<<"path"<<std::endl;
+	for(auto &i:path)
 	{
-		sdf::SDF boxSDF;
-		boxSDF.SetFromString(box->GetSDF());
-		_parent->InsertModelSDF(boxSDF);
+		std::cout<<i<<"   ";
 	}
+	std::cout<<std::endl;
+
+	/*this->model=_parent->ModelByName("my_robot");
+	std::cout<<"size "<<model->BoundingBox().Size()<<std::endl;
+	std::cout<<"size "<<model->BoundingBox().Min()<<std::endl;
+	std::cout<<"size "<<model->BoundingBox().Max()<<std::endl;*/
+
+}
+void insertModel(BoxExpanded* box, physics::WorldPtr _parent)
+{
+	sdf::SDF boxSDF;
+	boxSDF.SetFromString(box->GetSDF());
+	_parent->InsertModelSDF(boxSDF);
+}
+
+double getAngle(ignition::math::Vector2d vec1,ignition::math::Vector2d vec2)
+{
+	double scalar=vec1.X()*vec2.X()+vec1.Y()*vec2.Y();
+	return std::acos(scalar/(length(vec1)*length(vec2)));
+}
+
+double length(ignition::math::Vector2d vec)
+{
+	return std::sqrt(std::pow(vec.X(),2)+std::pow(vec.Y(),2));
+}
+
 };
-
 // Register this plugin with the simulator
 GZ_REGISTER_WORLD_PLUGIN(LaunchWorld)
 }
