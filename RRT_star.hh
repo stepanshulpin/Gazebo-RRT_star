@@ -24,7 +24,7 @@ private:
 public:
 	RRT_star(ignition::math::Vector2d _minPlace, ignition::math::Vector2d _maxPlace, 
 			ignition::math::Vector2d _init, ignition::math::Vector2d _goal, int _N_steps, 
-			double _p, double _accuracy, std::vector<BoxExpanded> _obstacles);
+			double _p, double _accuracy, std::vector<BoxExpanded> _obstacles, double modelSize);
 	void getPath(VectorOf2d & path);
 private:
 	void nearestNeighbour(ignition::math::Vector2d & near, ignition::math::Vector2d rand);
