@@ -267,8 +267,7 @@ bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Li
 
 		double seg2_line1_start = a1*line2[0].X() + b1*line2[0].Y() + d1;
 		double seg2_line1_end = a1*line2[1].X() + b1*line2[1].Y() + d1;
-
-		//если концы одного отрезка имеют один знак, значит он в одной полуплоскости и пересечения нет.
+		
 		if (seg1_line2_start * seg1_line2_end >= 0 || seg2_line1_start * seg2_line1_end >= 0) 
 			return false;
 

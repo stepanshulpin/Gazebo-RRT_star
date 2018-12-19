@@ -3,6 +3,7 @@
 #include "gazebo/common/common.hh"
 #include "gazebo/gazebo.hh"
 #include "BoxExpanded.hh"
+#include "ModelExpanded.hh"
 #include "RRT_star.hh"
 #include <gazebo/transport/transport.hh>
 #include <gazebo/msgs/msgs.hh>
@@ -11,13 +12,11 @@ namespace gazebo
 {
 class LaunchWorld : public WorldPlugin
 {
-private: physics::ModelPtr model;
-private: physics::WorldPtr parent;
-private: VectorOf2d path;
-private: bool complete=false;
-private: bool completeRotation=false;
-private: bool dal=false;
-private: double modelSize=1;/*bad practice*/
+private: 
+	VectorOf2d path;
+	ModelExpanded* model;
+	physics::WorldPtr parent;
+	double modelSize=1;/*bad practice*/
 
 private: event::ConnectionPtr updateConnection;
 
@@ -64,12 +63,14 @@ void Load(physics::WorldPtr _parent, sdf::ElementPtr /*_sdf*/)
 	insertModel(&box4,_parent);
 
 	std::vector<BoxExpanded> boxes={box1,box2,box3,box4};
-	int N_steps=10000;
+	int N_steps=1000;
 	double p=0.1;
 	double accuracy=0.3;
-	RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes,modelSize);
+	/*RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes,modelSize);
 	alg.getPath(path);
-	std::cout<<"path"<<std::endl;
+	std::cout<<"path"<<std::endl;*/
+	path.push_back(ignition::math::Vector2d(-10,-10));
+	path.push_back(ignition::math::Vector2d(-9,-9));
 	for(auto &i:path)
 	{
 		std::cout<<i<<"   ";
@@ -100,44 +101,16 @@ double length(ignition::math::Vector2d vec)
 
 public: 
 void OnUpdate()
-{
-	if(this->model){
-		if(path.size()>0)
-		{
-			if(!complete){
-				ignition::math::Vector2d curGoal = path[path.size()-2];
-				ignition::math::Pose3<double> curPose = this->model->RelativePose();
-				ignition::math::Vector2d dif(curGoal.X()-curPose.Pos().X(),curGoal.Y()-curPose.Pos().Y());
-				if(!completeRotation)
-				{
-					ignition::math::Quaternion<double> curRot = curPose.Rot();
-					ignition::math::Vector2d vec(1,std::tan(curRot.Z()));
-					/*this->model->SetAngularVel(ignition::math::Vector3d(0,0,-getAngle(dif,vec)));*/
-					completeRotation=true;
-				}
-				if(length(dif)>0.1)
-				{
-					dif.Normalize();
-					dif*=std::sqrt(0.1);
-					if(!dal)
-					{
-						this->model->SetLinearVel(ignition::math::Vector3d(dif.X(), dif.Y(), 0));
-						dal=true;
-					}
-				}
-				else
-				{
-					complete=true;
-					this->model->SetLinearVel(ignition::math::Vector3d(0, 0, 0));
-					std::cout<<"pose "<<curPose.Pos()<<std::endl;
-				}
-				this->model->SetLinearVel(ignition::math::Vector3d(dif.X(), dif.Y(), 0));
-			}
-
-		}
+{	
+	if(model){
+		if(!model->isReachedGoal())
+			model->calcControl();
 	}
 	else{
-		this->model=parent->ModelByName("my_robot");
+		if(parent->ModelByName("my_robot"))
+		{
+			model=new ModelExpanded(parent->ModelByName("my_robot"),path);
+		}
 	}
 }
 
