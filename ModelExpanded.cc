@@ -10,6 +10,7 @@ ModelExpanded::ModelExpanded(physics::ModelPtr _model, VectorOf2d _path)
 	model=_model;
 	path=_path;
 	reachedGoal=false;
+	trueAngle=false;
 	pointIndex=1;
 }
 
@@ -24,39 +25,50 @@ void ModelExpanded::calcControl()
 	ignition::math::Vector2d targetPoint(path[path.size()-pointIndex-1]);
 	ignition::math::Pose3<double> curPose = model->RelativePose();
 	ignition::math::Vector2d currentPoint(curPose.Pos().X(),curPose.Pos().Y());	
-	
+
 	ignition::math::Vector2d dif = targetPoint-previousPoint;
-	
+
 	ignition::math::Quaternion<double> currentRotation = curPose.Rot();
 	if(!init)
 	{
-		previousAngle=currentRotation.Z();
+		previousAngle=currentRotation.Yaw();
 		init=true;
 	}
 	ignition::math::Vector2d zeroAngle(1,0);
-	double angle = getAngle(zeroAngle,dif);
-	if(isBetween(previousAngle,angle,currentRotation.Z()))
-	{
-		std::cout<<"curAngle= "<<currentRotation.Z()<<std::endl;
-		stop();
-		reachedGoal=true;
+	double angle = std::atan2(dif.Y(),dif.X());
+	if(!trueAngle){
+		if(isBetween(previousAngle,angle,currentRotation.Yaw()))
+		{
+			/*std::cout<<"angle--->"<<angle<<std::endl;
+			std::cout<<"currentRotation.Yaw--->"<<currentRotation.Yaw()<<std::endl;*/
+			stop();
+			trueAngle=true;
+		}
+		else
+		{
+			setAngularVel(angle-previousAngle);
+		}
 	}
 	else
 	{
-		setAngularVel(angle-currentRotation.Z());
+		dif.Normalize();
+		if(isBetween(previousPoint,currentPoint,targetPoint))
+		{
+			stop();
+			if(pointIndex<(path.size()-1))
+			{
+				pointIndex++;
+				trueAngle=false;
+			}
+			else{
+				reachedGoal=true;
+			}
+		}
+		else
+		{
+			setLinearVel(dif);
+		}
 	}
-
-	
-	/*dif.Normalize();
-	if(isBetween(previousPoint,currentPoint,targetPoint))
-	{
-		stop();
-		reachedGoal=true;
-	}
-	else
-	{
-		setLinearVel(dif);
-	}*/
 
 }
 
@@ -101,13 +113,13 @@ bool ModelExpanded::isBetween(ignition::math::Vector2d p1,ignition::math::Vector
 }
 double ModelExpanded::getAngle(ignition::math::Vector2d vec1,ignition::math::Vector2d vec2)
 {
-	double scalar=vec1.X()*vec2.X()+vec1.Y()*vec2.Y();
-	return std::acos(scalar/(length(vec1)*length(vec2)));
+	ignition::math::Vector2d vec=vec2-vec1;
+	return std::atan2(vec.X(), vec.Y());
 }
 
 void ModelExpanded::setAngularVel(double angle)
 {
-	this->model->SetAngularVel(ignition::math::Vector3d(0,0,angle));
+	this->model->SetAngularVel(ignition::math::Vector3d(0,0,angle>0?0.3:-0.3));
 }
 
 

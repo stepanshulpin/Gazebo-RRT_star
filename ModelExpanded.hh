@@ -13,6 +13,7 @@ private:
 	physics::ModelPtr model;
 	VectorOf2d path;
 	bool reachedGoal;
+	bool trueAngle;
 	int pointIndex;
 	double previousAngle;
 	bool init=false;
@@ -24,6 +25,7 @@ public:
 		model = another.model;
 		path = another.path;	
 		reachedGoal = another.reachedGoal;
+		trueAngle= another.trueAngle;
 		pointIndex = another.pointIndex;
 		return *this;
 	}

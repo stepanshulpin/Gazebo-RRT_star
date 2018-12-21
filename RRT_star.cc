@@ -35,7 +35,6 @@ void RRT_star::getPath(VectorOf2d & path)
 		findStoppingState(nev,near,rand);
 		if(nev!=near)
 		{
-			tree_size++;
 			double r=searchRadius(step,N_steps);
 			std::vector<int> nearestInd;
 			std::vector<double> distanceToNew;
@@ -51,14 +50,16 @@ void RRT_star::getPath(VectorOf2d & path)
 				vertexes.push_back(nev);
 				parents.push_back(nearestInd[iParent]);
 				costs.push_back(newCost);
+				tree_size++;
 				rewire(tree_size,newCost,distanceToNew,nearestInd,nev);
+				if(nev.Distance(goal)<accuracy)
+				{
+					std::cout<<"optimalPathPlot"<<std::endl;
+					optimalPathPlot(path);
+					break;
+				}
 			}
-			if(nev.Distance(goal)<accuracy)
-			{
-				optimalPathPlot(path);
-				std::cout<<"optimalPathPlot"<<std::endl;
-				break;
-			}
+
 		}
 		step++;
 	}
@@ -154,7 +155,7 @@ void RRT_star::nearestNeighbours(std::vector<int> & nearestInd, std::vector<doub
 		j++;
 	});
 }
-	
+
 
 void RRT_star::sortNearestNeighbours(std::vector<double> & sortedCosts, std::vector<int> & prevSortInd,std::vector<int> nearestInd,std::vector<double> distanceToNew)
 {
@@ -169,8 +170,8 @@ void RRT_star::sortNearestNeighbours(std::vector<double> & sortedCosts, std::vec
 		j++;
 	}
 	std::sort(costsPair.begin(),costsPair.end(),
-	          [] (const auto& lhs, const auto& rhs) {
-	    return lhs.first < rhs.first;
+			[] (const auto& lhs, const auto& rhs) {
+		return lhs.first < rhs.first;
 	});
 	for_each(costsPair.begin(), costsPair
 			.end(), [&](CostPair i){
@@ -238,7 +239,7 @@ template<class T>
 void RRT_star::printVec(std::vector<T> vec)
 {
 	for(auto &i:vec) std::cout<<i<<"  ";
-		std::cout<<std::endl;
+	std::cout<<std::endl;
 }
 
 bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Line2<double> line2, ignition::math::Vector2d & point) 
@@ -267,7 +268,7 @@ bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Li
 
 		double seg2_line1_start = a1*line2[0].X() + b1*line2[0].Y() + d1;
 		double seg2_line1_end = a1*line2[1].X() + b1*line2[1].Y() + d1;
-		
+
 		if (seg1_line2_start * seg1_line2_end >= 0 || seg2_line1_start * seg2_line1_end >= 0) 
 			return false;
 
