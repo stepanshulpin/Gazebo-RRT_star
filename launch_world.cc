@@ -55,14 +55,41 @@ void Load(physics::WorldPtr _parent, sdf::ElementPtr /*_sdf*/)
 			ignition::math::Vector3d(-2,-7.75,0.25));
 	BoxExpanded box4("box_4", ignition::math::Vector3d(-2.25,-7.75,0),
 			ignition::math::Vector3d(-2,0,0.25));
+	BoxExpanded box5("box_5", ignition::math::Vector3d(-4.25,0,0),
+			ignition::math::Vector3d(-4,10,0.25));
+	BoxExpanded box6("box_6", ignition::math::Vector3d(-4,9.75,0),
+			ignition::math::Vector3d(10,9.99,0.25));
+	BoxExpanded box7("box_7", ignition::math::Vector3d(-0.25,0,0),
+			ignition::math::Vector3d(10,0.25,0.25));
+	BoxExpanded box8("box_8", ignition::math::Vector3d(9.75,0.25,0),
+			ignition::math::Vector3d(10,9.75,0.25));
+	BoxExpanded box9("box_9", ignition::math::Vector3d(-2.25,2,0),
+			ignition::math::Vector3d(-2,8,0.25));
+	BoxExpanded box10("box_10", ignition::math::Vector3d(-2,2,0),
+			ignition::math::Vector3d(8,2.25,0.25));
+	BoxExpanded box11("box_11", ignition::math::Vector3d(7.75,2.25,0),
+			ignition::math::Vector3d(8,8,0.25));
+	BoxExpanded box12("box_12", ignition::math::Vector3d(-2,7.75,0),
+			ignition::math::Vector3d(7.75,8,0.25));
+	BoxExpanded box13("box_13", ignition::math::Vector3d(-4,0,0),
+			ignition::math::Vector3d(-2,0.25,0.25));
 
 	insertModel(&box1,_parent);
 	insertModel(&box2,_parent);
 	insertModel(&box3,_parent);
 	insertModel(&box4,_parent);
+	insertModel(&box5,_parent);
+	insertModel(&box6,_parent);
+	insertModel(&box7,_parent);
+	insertModel(&box8,_parent);
+	insertModel(&box9,_parent);
+	insertModel(&box10,_parent);
+	insertModel(&box11,_parent);
+	insertModel(&box12,_parent);
+	insertModel(&box13,_parent);
 
-	std::vector<BoxExpanded> boxes={box1,box2,box3,box4};
-	int N_steps=2000;
+	std::vector<BoxExpanded> boxes={box1,box2,box3,box4,box5,box6,box7,box8,box9,box10,box11,box12,box13};
+	int N_steps=1000;
 	double p=0.1;
 	double accuracy=0.3;
 	RRT_star alg(minPlace,maxPlace,init,goal,N_steps,p,accuracy,boxes,modelSize);

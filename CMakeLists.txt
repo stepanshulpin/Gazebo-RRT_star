@@ -9,5 +9,5 @@ link_directories(${GAZEBO_LIBRARY_DIRS})
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 
-add_library(RRT_star SHARED launch_world.cc BoxExpanded.hh BoxExpanded.cc RRT_star.hh RRT_star.cc)
+add_library(RRT_star SHARED launch_world.cc BoxExpanded.hh BoxExpanded.cc RRT_star.hh RRT_star.cc ModelExpanded.hh ModelExpanded.cc)
 target_link_libraries(RRT_star  ${GAZEBO_LIBRARIES})

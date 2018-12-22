@@ -1,8 +1,8 @@
 #include "RRT_star.hh"
-#include <random>  
+#include <random>
 
-RRT_star::RRT_star(ignition::math::Vector2d _minPlace, ignition::math::Vector2d _maxPlace, 
-		ignition::math::Vector2d _init, ignition::math::Vector2d _goal, int _N_steps, 
+RRT_star::RRT_star(ignition::math::Vector2d _minPlace, ignition::math::Vector2d _maxPlace,
+		ignition::math::Vector2d _init, ignition::math::Vector2d _goal, int _N_steps,
 		double _p, double _accuracy, std::vector<BoxExpanded> _obstacles, double modelSize)
 {
 	minPlace=_minPlace;
@@ -12,10 +12,10 @@ RRT_star::RRT_star(ignition::math::Vector2d _minPlace, ignition::math::Vector2d 
 	N_steps=_N_steps;
 	p=_p;
 	accuracy=_accuracy;
-	for_each(_obstacles.begin(), _obstacles.end(), [&](BoxExpanded i){	
+	for_each(_obstacles.begin(), _obstacles.end(), [&](BoxExpanded i){
 		std::vector<ignition::math::Line2<double>> linesFromBox(i.getLines(modelSize));
 		lines.insert(lines.end(),linesFromBox.begin(),linesFromBox.end());
-	});	
+	});
 }
 
 void RRT_star::getPath(VectorOf2d & path)
@@ -52,12 +52,6 @@ void RRT_star::getPath(VectorOf2d & path)
 				costs.push_back(newCost);
 				tree_size++;
 				rewire(tree_size,newCost,distanceToNew,nearestInd,nev);
-				if(nev.Distance(goal)<accuracy)
-				{
-					std::cout<<"optimalPathPlot"<<std::endl;
-					optimalPathPlot(path);
-					break;
-				}
 			}
 
 		}
@@ -65,7 +59,8 @@ void RRT_star::getPath(VectorOf2d & path)
 	}
 	if(step==N_steps)
 	{
-		std::cout<<"optimalPath not found"<<std::endl;
+		int nearGoalInd = nearestNeighbour(goal);
+		optimalPathPlot(path,nearGoalInd);
 	}
 }
 
@@ -100,7 +95,7 @@ double RRT_star::generateState(double min, double max)
 }
 
 void RRT_star::nearestNeighbour(ignition::math::Vector2d & near, ignition::math::Vector2d rand)
-{	
+{
 	near = vertexes.at(nearestNeighbour(rand));
 }
 
@@ -114,7 +109,7 @@ int RRT_star::nearestNeighbour(ignition::math::Vector2d rand)
 }
 
 void RRT_star::findStoppingState(ignition::math::Vector2d & nev, ignition::math::Vector2d near, ignition::math::Vector2d rand)
-{	
+{
 	ignition::math::Line2<double> line(near,rand);
 	VectorOf2d points;
 	std::vector<double> dist;
@@ -124,7 +119,7 @@ void RRT_star::findStoppingState(ignition::math::Vector2d & nev, ignition::math:
 	for_each(lines.begin(),lines.end(),[&](ignition::math::Line2<double> i){
 		ignition::math::Vector2d point;
 		int cross = crossLine(i,line,point);
-		if(cross) 
+		if(cross)
 		{
 			isntCross=0;
 			points.push_back(point);
@@ -133,12 +128,12 @@ void RRT_star::findStoppingState(ignition::math::Vector2d & nev, ignition::math:
 	});
 	if(isntCross) nev=rand;
 	else
-	{		
+	{
 		ignition::math::Vector2d crossVec = points.at(std::distance(dist.begin(), std::min_element(dist.begin(), dist.end())));
 		ignition::math::Vector2d dif = near-crossVec;
 		dif.Normalize();
-		dif*=p;		
-		nev=crossVec+dif;	
+		dif*=p;
+		nev=crossVec+dif;
 	}
 }
 
@@ -161,11 +156,13 @@ void RRT_star::sortNearestNeighbours(std::vector<double> & sortedCosts, std::vec
 {
 	std::vector<CostPair> costsPair;
 	int j=0;
-	for(auto &i:costs) 
+	int k=0;
+	for(auto &i:costs)
 	{
 		if(std::find(nearestInd.begin(),nearestInd.end(),j)!=nearestInd.end())
 		{
-			costsPair.push_back(CostPair(i+distanceToNew[j],j));			
+			costsPair.push_back(CostPair(i+distanceToNew[j],k));
+			k++;
 		}
 		j++;
 	}
@@ -187,7 +184,7 @@ void RRT_star::minCostParent(double & newCost, int & iParent,ignition::math::Vec
 	while(!foundColisionFreeParent)
 	{
 		iParent=prevSortInd[j];
-		ignition::math::Line2<double> line(nev,vertexes[iParent]);
+		ignition::math::Line2<double> line(nev,vertexes[nearestInd[iParent]]);
 		int isntCross=0;
 		isntCross=std::all_of(lines.begin(),lines.end(),[&](ignition::math::Line2<double> i){
 			int cross = crossLine(i,line,point);
@@ -207,8 +204,8 @@ void RRT_star::rewire(int tree_size,double newCost,std::vector<double> distanceT
 {
 	int j=0;
 	ignition::math::Vector2d point;
-	for(const auto &i:vertexes) 
-	{		
+	for(const auto &i:vertexes)
+	{
 		if(std::find(nearestInd.begin(),nearestInd.end(),j)!=nearestInd.end())
 		{
 			if((newCost+distanceToNew[j])<costs[j]){
@@ -242,7 +239,7 @@ void RRT_star::printVec(std::vector<T> vec)
 	std::cout<<std::endl;
 }
 
-bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Line2<double> line2, ignition::math::Vector2d & point) 
+bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Line2<double> line2, ignition::math::Vector2d & point)
 {
 	ignition::math::Vector2d pFromLib;
 	if(line1.Intersect(line2,pFromLib)){
@@ -269,7 +266,7 @@ bool RRT_star::crossLine(ignition::math::Line2<double> line1, ignition::math::Li
 		double seg2_line1_start = a1*line2[0].X() + b1*line2[0].Y() + d1;
 		double seg2_line1_end = a1*line2[1].X() + b1*line2[1].Y() + d1;
 
-		if (seg1_line2_start * seg1_line2_end >= 0 || seg2_line1_start * seg2_line1_end >= 0) 
+		if (seg1_line2_start * seg1_line2_end >= 0 || seg2_line1_start * seg2_line1_end >= 0)
 			return false;
 
 		double u = seg1_line2_start / (seg1_line2_start - seg1_line2_end);

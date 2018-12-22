@@ -39,7 +39,9 @@ void ModelExpanded::calcControl()
 	if(!trueAngle){
 		if(isBetween(previousAngle,angle,currentRotation.Yaw()))
 		{
-			/*std::cout<<"angle--->"<<angle<<std::endl;
+			/*std::cout<<"pointIndex--->"<<pointIndex<<std::endl;
+			std::cout<<"angle--->"<<angle<<std::endl;
+			std::cout<<"previousAngle--->"<<previousAngle<<std::endl;
 			std::cout<<"currentRotation.Yaw--->"<<currentRotation.Yaw()<<std::endl;*/
 			stop();
 			trueAngle=true;
@@ -54,11 +56,16 @@ void ModelExpanded::calcControl()
 		dif.Normalize();
 		if(isBetween(previousPoint,currentPoint,targetPoint))
 		{
+			/*std::cout<<"pointIndex--->"<<pointIndex<<std::endl;
+			std::cout<<"targetPoint--->"<<targetPoint<<std::endl;
+			std::cout<<"previousPoint--->"<<previousPoint<<std::endl;
+			std::cout<<"currentPoint--->"<<currentPoint<<std::endl;*/
 			stop();
 			if(pointIndex<(path.size()-1))
 			{
 				pointIndex++;
 				trueAngle=false;
+				init=false;
 			}
 			else{
 				reachedGoal=true;
@@ -119,7 +126,7 @@ double ModelExpanded::getAngle(ignition::math::Vector2d vec1,ignition::math::Vec
 
 void ModelExpanded::setAngularVel(double angle)
 {
-	this->model->SetAngularVel(ignition::math::Vector3d(0,0,angle>0?0.3:-0.3));
+	this->model->SetAngularVel(ignition::math::Vector3d(0,0,angle>0?0.2:-0.2));
 }
 
 
